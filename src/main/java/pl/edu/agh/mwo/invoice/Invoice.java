@@ -12,7 +12,6 @@ public class Invoice {
     private final Map<Product, Integer> products = new HashMap<>();
     private String invoiceNumber;
 
-    // Metoda generująca listę produktów
     public String getProductListAsString() {
         StringBuilder result = new StringBuilder();
         String lineSeparator = System.lineSeparator();
@@ -21,29 +20,30 @@ public class Invoice {
                 .append(invoiceNumber != null ? invoiceNumber : "Not assigned")
                 .append(lineSeparator);
 
+        // Nagłówki tabeli
+        result.append(String.format("%-25s | %-8s | %-10s%s", "Product", "Quantity", "Price", lineSeparator));
+        result.append("--------------------------|----------|-----------").append(lineSeparator);
+
         products.entrySet().stream()
-                .sorted(Comparator.comparing(entry -> entry.getKey().getName()))
+                .sorted(Comparator.comparing(e -> e.getKey().getName()))
                 .forEach(entry -> {
                     Product product = entry.getKey();
+                    Integer quantity = entry.getValue();
                     BigDecimal price = product.getPrice().setScale(2, RoundingMode.HALF_UP);
-                    result.append(String.format(
-                            "%s, Quantity: %d, Price: %s%s",
+                    result.append(String.format("%-25s | %-8d | %-10s%s",
                             product.getName(),
-                            entry.getValue(),
+                            quantity,
                             price,
-                            lineSeparator
-                    ));
+                            lineSeparator));
                 });
 
-        int totalItems = products.values().stream()
-                .mapToInt(Integer::intValue)
-                .sum();
-
+        int totalItems = products.values().stream().mapToInt(Integer::intValue).sum();
+        result.append("--------------------------|----------|-----------").append(lineSeparator);
         result.append("Number of items: ").append(totalItems);
+
         return result.toString();
     }
 
-    // Pozostałe metody bez zmian
     public void addInvoiceNumber(String invoiceNumber) {
         if (this.invoiceNumber != null) {
             throw new IllegalStateException("Invoice number has already been set.");
@@ -58,10 +58,6 @@ public class Invoice {
         return invoiceNumber;
     }
 
-    public static int getNumber() {
-        return 0;
-    }
-
     public void addProduct(Product product) {
         addProduct(product, 1);
     }
@@ -70,8 +66,14 @@ public class Invoice {
         if (product == null || quantity <= 0) {
             throw new IllegalArgumentException();
         }
-        products.put(product, quantity);
+        //Protect from duplicates
+        if (products.containsKey(product)) {
+            products.compute(product, (k, currentQuantity) -> currentQuantity + quantity);
+        } else {
+            products.put(product, quantity);
+        }
     }
+
 
     public BigDecimal getNetTotal() {
         BigDecimal totalNet = BigDecimal.ZERO;

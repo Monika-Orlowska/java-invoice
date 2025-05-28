@@ -1,7 +1,5 @@
 package pl.edu.agh.mwo.invoice;
-import pl.edu.agh.mwo.invoice.product.InvoiceNumber;
-import pl.edu.agh.mwo.invoice.product.OtherProduct;
-import pl.edu.agh.mwo.invoice.product.TaxFreeProduct;
+import pl.edu.agh.mwo.invoice.product.*;
 
 import java.math.BigDecimal;
 
@@ -16,7 +14,11 @@ public class Main {
 
         TaxFreeProduct laptop = new TaxFreeProduct("Laptop", new BigDecimal("4500.00"));
         OtherProduct mysz = new OtherProduct("Mysz bezprzewodowa", new BigDecimal ("120.50"));
+        BottleOfWine wine = new BottleOfWine("Wino czerwone", new BigDecimal("50.00"));
+        FuelCanister fuel = new FuelCanister("Kanister benzyny", new BigDecimal("20.00"));
 
+        invoice.addProduct(wine, 2);
+        invoice.addProduct(fuel, 3);
         invoice.addProduct(laptop, 2);
         invoice.addProduct(mysz, 3);
 

@@ -299,5 +299,42 @@ public class InvoiceTest {
         assertEquals(new BigDecimal("15.40"), invoice.getGrossTotal().setScale(2, RoundingMode.HALF_UP));
     }
 
+    //Duplicate tests
+    public static class DuplicateProductInvoiceTest {
+        private Invoice invoice;
+        private Product laptop;
+
+        @Before
+        public void setUp() {
+            invoice = new Invoice();
+            laptop = new TaxFreeProduct("Laptop", new BigDecimal("4500.00"));
+        }
+
+        @Test
+        public void testAddingSameProductTwice() {
+            // Dodaj produkt dwukrotnie
+            invoice.addProduct(laptop, 2);
+            invoice.addProduct(laptop, 3);
+
+            // Sprawdź, czy w outputcie jest tylko jedna pozycja z ilością 5
+            String output = invoice.getProductListAsString();
+            assertTrue(output.contains("Laptop") && output.contains("Quantity: 5"));
+
+            // Sprawdź sumę netto: 5 * 4500.00 = 22500.00
+            assertEquals(new BigDecimal("22500.00"), invoice.getNetTotal());
+        }
+    }
+    //Excise tests
+    @Test
+    public void testExciseTaxCalculation() {
+        BottleOfWine wine = new BottleOfWine("Testowe wino", new BigDecimal("100.00"));
+        Invoice invoice = new Invoice();
+        invoice.addProduct(wine, 1);
+
+        BigDecimal expectedTax = new BigDecimal("23.00").add(wine.getExciseTax());
+        assertEquals(expectedTax, invoice.getTaxTotal());
+    }
+
+
 
 }
