@@ -21,7 +21,10 @@ public class Invoice {
                 .append(lineSeparator);
 
         // Nagłówki tabeli
-        result.append(String.format("%-25s | %-8s | %-10s%s", "Product", "Quantity", "Price", lineSeparator));
+        result.append(
+                String.format(
+                        "%-25s | %-8s | %-10s%s", "Product", "Quantity", "Price",
+                        lineSeparator));
         result.append("--------------------------|----------|-----------").append(lineSeparator);
 
         products.entrySet().stream()

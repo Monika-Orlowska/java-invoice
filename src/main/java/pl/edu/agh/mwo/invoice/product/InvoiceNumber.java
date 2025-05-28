@@ -7,6 +7,8 @@ import java.util.Map;
 import java.util.Set;
 
 public class InvoiceNumber {
+    private static final int MAX_NUMBER_PER_YEAR = 9999;
+
     private final Map<Integer, Set<Integer>> usedNumbers = new HashMap<>();
 
     public synchronized String generateNumber() {
@@ -17,7 +19,7 @@ public class InvoiceNumber {
         while (numbers.contains(nextNumber)) {
             nextNumber++;
         }
-        if (nextNumber > 9999) {
+        if (nextNumber > MAX_NUMBER_PER_YEAR) {
             throw new IllegalStateException("No more numbers available for year " + year);
         }
         numbers.add(nextNumber);
