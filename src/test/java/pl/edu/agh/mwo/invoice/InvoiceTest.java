@@ -1,18 +1,24 @@
 package pl.edu.agh.mwo.invoice;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
 
 import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import pl.edu.agh.mwo.invoice.Invoice;
-import pl.edu.agh.mwo.invoice.product.DairyProduct;
-import pl.edu.agh.mwo.invoice.product.OtherProduct;
-import pl.edu.agh.mwo.invoice.product.Product;
-import pl.edu.agh.mwo.invoice.product.TaxFreeProduct;
+import org.junit.experimental.runners.Enclosed;
+import org.junit.runner.RunWith;
+import pl.edu.agh.mwo.invoice.product.*;
 
+import static junit.framework.TestCase.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+@RunWith(Enclosed.class)
 public class InvoiceTest {
     private Invoice invoice;
 
@@ -125,4 +131,173 @@ public class InvoiceTest {
     public void testAddingNullProduct() {
         invoice.addProduct(null);
     }
+
+    public static class InvoiceNumberTest {
+        private InvoiceNumber generator;
+
+        @Before
+        public void setUp() {
+            generator = new InvoiceNumber();
+        }
+
+        @Test
+        public void testGenerateNumber_FormatAndUniqueness() {
+            String number1 = generator.generateNumber();
+            String number2 = generator.generateNumber();
+
+            String currentYear = String.valueOf(LocalDate.now().getYear());
+            assertTrue(number1.startsWith(currentYear + "/"));
+            assertTrue(number2.startsWith(currentYear + "/"));
+            assertNotEquals(number1, number2);
+            assertEquals(9, number1.length()); // 4 + 1 + 4 = 9
+        }
+
+        @Test
+        public void testGenerateNumber_Sequential() {
+            generator.clear();
+            String number1 = generator.generateNumber();
+            String number2 = generator.generateNumber();
+            //Sequence accurate test:
+            assertTrue(number1.endsWith("/0001"));
+            assertTrue(number2.endsWith("/0002"));
+        }
+
+        @Test
+        public void testGenerateNumber_MaxNumbersPerYear() {
+            generator.clear();
+            // Simulate generating 9999 numbers
+            for (int i = 0; i < 9999; i++) {
+                generator.generateNumber();
+            }
+            // Next call should throw
+            assertThrows(IllegalStateException.class, generator::generateNumber);
+        }
+
+        @Test
+        public void testAddInvoiceNumber_Success() {
+            Invoice invoice = new Invoice();
+            invoice.addInvoiceNumber("2025/0001");
+            assertEquals("2025/0001", invoice.getInvoiceNumber());
+        }
+
+        @Test
+       public void testAddInvoiceNumber_AlreadySet() {
+            Invoice invoice = new Invoice();
+            invoice.addInvoiceNumber("2025/0001");
+            assertThrows(IllegalStateException.class, () -> invoice.addInvoiceNumber("2025/0002"));
+        }
+
+        @Test
+        public void testAddInvoiceNumber_NullOrEmpty() {
+            Invoice invoice = new Invoice();
+            assertThrows(IllegalArgumentException.class, () -> invoice.addInvoiceNumber(null));
+            assertThrows(IllegalArgumentException.class, () -> invoice.addInvoiceNumber(""));
+        }
+        @Test
+        public void testGenerateNumber_OnlyDigitsAndSlash() {
+            InvoiceNumber generator = new InvoiceNumber();
+            String invoiceNumber = generator.generateNumber();
+
+            // Regex: 4 digits, slash, 4 digits
+            assertTrue("Invoice number should contain only digits and one slash in the correct position",
+                    invoiceNumber.matches("^\\d{4}/\\d{4}$"));
+        }
+    }
+    @Test //new method "GetProductListAsString tests
+    public void testProductListFormatting() {
+        // Given
+        invoice.addInvoiceNumber("2025/0428");
+        Product laptop = new TaxFreeProduct("Laptop", new BigDecimal("4500"));
+        Product mouse = new OtherProduct("Mysz", new BigDecimal("120.50"));
+
+        // When
+        invoice.addProduct(laptop, 2);
+        invoice.addProduct(mouse, 3);
+        String result = invoice.getProductListAsString();
+
+        // Then
+        String expected = """
+                Invoice number: 2025/0428
+                Laptop, Quantity: 2, Price: 4500.00
+                Mysz, Quantity: 3, Price: 120.50
+                Number of items: 5
+                """.trim();
+        assertEquals(expected.replaceAll("\n", System.lineSeparator()), result);
+    }
+
+
+        @Test
+    public void testProductListWithoutInvoiceNumber() {
+        // When
+        String result = invoice.getProductListAsString();
+
+        // Then
+        assertTrue(result.startsWith("Invoice number: Not assigned"));
+    }
+
+    //Border values for quantities
+    @Test
+    public void testMinimumQuantity() {
+        // Given
+        Product pen = new TaxFreeProduct("Długopis", new BigDecimal("5"));
+
+        // When
+        invoice.addProduct(pen, 1);
+
+        // Then
+        assertEquals(5, invoice.getNetTotal().intValue());
+    }
+
+    @Test
+    public void testMaximumQuantity() {
+        // Given
+        Product pin = new TaxFreeProduct("Pinezka", new BigDecimal("0.01"));
+
+        // When
+        invoice.addProduct(pin, Integer.MAX_VALUE);
+
+        // Then
+        assertEquals(21474836.47, invoice.getNetTotal().doubleValue(), 0.01);
+    }
+    //Wyjątki
+
+    @Test
+    public void testAddProductNullValidationMessage() {
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> invoice.addProduct(null));
+        assertEquals("Product cannot be null", exception.getMessage());
+    }
+
+    @Test
+    public void testAddInvoiceNumberEmptyValidationMessage() {
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> invoice.addInvoiceNumber(""));
+        assertEquals("Invoice number cannot be null or empty", exception.getMessage());
+    }
+    //
+    @Test
+    public void testTaxCalculationEdgeCase() {
+        // Given
+        Product zeroTaxProduct = new TaxFreeProduct("Test", new BigDecimal("100"));
+
+        // When
+        invoice.addProduct(zeroTaxProduct);
+
+        // Then
+        assertEquals(BigDecimal.ZERO, invoice.getTaxTotal());
+    }
+
+    @Test
+    public void testGrossTotalWithDifferentTaxRates() {
+        // Given
+        Product p1 = new TaxFreeProduct("Bread", new BigDecimal("10"));
+        Product p2 = new DairyProduct("Milk", new BigDecimal("5"));
+
+        // When
+        invoice.addProduct(p1);
+        invoice.addProduct(p2);
+
+        // Then
+        assertEquals(new BigDecimal("15.40"), invoice.getGrossTotal().setScale(2, RoundingMode.HALF_UP));
+    }
+
+
 }
