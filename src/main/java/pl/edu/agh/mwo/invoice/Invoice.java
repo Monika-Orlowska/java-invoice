@@ -58,6 +58,10 @@ public class Invoice {
         return invoiceNumber;
     }
 
+    public static int getNumber() {
+        return 0;
+    }
+
     public void addProduct(Product product) {
         addProduct(product, 1);
     }
