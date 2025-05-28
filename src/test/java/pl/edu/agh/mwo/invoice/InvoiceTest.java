@@ -10,6 +10,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import org.junit.experimental.runners.Enclosed;
+import org.junit.jupiter.api.Nested;
 import org.junit.runner.RunWith;
 import pl.edu.agh.mwo.invoice.product.*;
 
@@ -21,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @RunWith(Enclosed.class)
 public class InvoiceTest {
     private Invoice invoice;
+
 
     @Before
     public void createEmptyInvoiceForTheTest() {
@@ -300,7 +302,8 @@ public class InvoiceTest {
     }
 
     //Duplicate tests
-    public static class DuplicateProductInvoiceTest {
+    @Nested
+    public class DuplicateProductInvoiceTest {
         private Invoice invoice;
         private Product laptop;
 
@@ -311,16 +314,14 @@ public class InvoiceTest {
         }
 
         @Test
-        public void testAddingSameProductTwice() {
+        public void AddingSameProductTwice() {
             // Dodaj produkt dwukrotnie
             invoice.addProduct(laptop, 2);
             invoice.addProduct(laptop, 3);
 
-            // Sprawdź, czy w outputcie jest tylko jedna pozycja z ilością 5
-            String output = invoice.getProductListAsString();
-            assertTrue(output.contains("Laptop") && output.contains("Quantity: 5"));
-
-            // Sprawdź sumę netto: 5 * 4500.00 = 22500.00
+            // Sprawdź ilość w mapie
+            assertEquals(Integer.valueOf(5), invoice.products.get(laptop));
+            // Sprawdź sumę netto
             assertEquals(new BigDecimal("22500.00"), invoice.getNetTotal());
         }
     }

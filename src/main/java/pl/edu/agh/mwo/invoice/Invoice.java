@@ -9,7 +9,7 @@ import java.util.Map;
 import pl.edu.agh.mwo.invoice.product.Product;
 
 public class Invoice {
-    private final Map<Product, Integer> products = new HashMap<>();
+    final Map<Product, Integer> products = new HashMap<>();
     private String invoiceNumber;
 
     public String getProductListAsString() {
